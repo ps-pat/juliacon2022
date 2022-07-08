@@ -65,7 +65,7 @@ Test Passed
                                 <ul>
                                     <li>Generating set \( S = \left\{ a, b, c, \ldots \right\} \)</li>
                                     <li>Inverse set \( S^{-1} = \left\{ x^{-1} : x \in S \right\}\)</li>
-                                    <li>A word on \( S \) is any written product of symbols (letters) of \( S \cup S^{-1} \)</li>
+                                    <li>A word on \( S \) is any written product of symbols of \( S \cup S^{-1} \)</li>
                                 </ul>
                             </div>
                             <div class="fragment r-frame obox fade-in-then-semi-out" data-fragment-index="1">
@@ -201,7 +201,7 @@ word::Word
                             <ul>
                                 <li>Inverse of a word:
                                     <ol>
-                                        <li>Inverse each letter;</li>
+                                        <li>Inverse each symbol;</li>
                                         <li>Reverse the word.</li>
                                     </ol>
                                 </li>
@@ -517,7 +517,7 @@ end
 
              spotlight: {
                  // size of the spotlight
-                 size: 60,
+                 size: 10,
 
                  // true: Locks the mouse pointer inside the presentation
                  // there is by design (Pointer Lock API) no spotlightCursor and presentingCursor
@@ -532,10 +532,10 @@ end
                  spotlightOnKeyPressAndHold: false,
 
                  // choose the cursor when spotlight is on. Maybe "crosshair"?
-                 spotlightCursor: 'crosshair',
+                 spotlightCursor: 'none',
 
                  // choose the cursor when spotlight is off and in presentation mode. Maybe "default"?
-                 presentingCursor: 'none',
+                 presentingCursor: 'default',
 
                  // true: initially in presentation mode, will also be ture if this is not set and toggleSpotlightOnMouseDown is true
                  initialPresentationMode: false,
@@ -547,7 +547,7 @@ end
                  fadeInAndOut: 100,
 
                  // enable pointer mode
-                 useAsPointer: false,
+                 useAsPointer: true,
 
                  // pointer color (If pointer mode enabled)
                  pointerColor: 'red'
