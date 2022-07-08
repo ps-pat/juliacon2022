@@ -4,94 +4,354 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
-        <title>My Presentation</title>
+        <title>JCheck.jl: Randomized Property Testing Made Easy</title>
 
         <link rel="stylesheet" href="dist/reset.css">
         <link rel="stylesheet" href="dist/reveal.css">
         <link rel="stylesheet" href="dist/theme/mytheme.css" id="theme">
+
     </head>
     <body>
         <div class="reveal">
             <div class="slides">
                 <section class="cover">
-                    <h1>Title of the presentation</h1>
-                    <h2>Author</h2>
-                    <h3>Event</h3>
-                    <h3>Date</h3>
+                    <h1><a href="https://github.com/ps-pat/JCheck.jl/">JCheck.jl</a>: Randomized Property Testing Made Easy</h1>
+                    <h2><a href="https://www.patrickfournier.ca">P. Fournier</a> (<a href="https://statqam.uqam.ca/">STATQAM</a> &mdash; <a href="https://uqam.ca/">UQAM</a>)</a></h2>
+                    <h3>JuliaCon 2022</h3>
+                    <h3>July 2022</h3>
                 </section>
                 <section>
                     <section class="title-slide">
-                        <h1>Theme of the next vertical slides</h1>
-                        <h2>Why not have a subtitle too?</h2>
+                        <h1>Testing</h1>
                     </section>
                     <section>
-                        <h1>Title of the slide</h1>
-                        Some content in the form of an ordered list:
-                        <ol>
-                            <li>First very important point</li>
-                            <li>Second less important point</li>
-                        </ol>
+                        <h1>Definitions</h1>
+                        <dl>
+                            <dt>Test</dt>
+                            <dd>Act of validating a software</dd>
+                            <dt>Unit Test</dt>
+                            <dd>Partial test of a software (part tested \( \Leftrightarrow \) unit)</dd>
+                        </dl>
+                        <ul class="fragment fade-up" style="margin-top: 1em;">
+                            <li>Usually, output of test is compared against correct one \( \Rightarrow \) has to be known beforehand</li>
+                        </ul>
                     </section>
-                </section>
-                <section>
-                    <h1>Code</h1>
-                    <p>Are you ready for some awesome <code class="julia">content = "code"</code>?</p>
-                    <pre class="julia"><code data-trim>
-test = 41 + 1
-function ret42(x::Int)
-    ret = 42 - x
-    ret + x
-end
-                    </code></pre>
-                </section>
-                <section>
-                    Slide 2<br>
-                    <a href="https://www.perdu.com">This is a link</a>
-                </section>
-                <section>
-                    <h1>Title of the slide</h1>
-                    <p>Sample unordered list:</p>
-                    <ul>
-                        <li>First item</li>
-                        <li>Second item</li>
-                    </ul>
-                </section>
-                <section>
-                    <p>This integral is not as easy as \( 2 + \frac 4 2 = 4 \) &#x1F614;</p>
-                    $$\begin{equation*}
-                    \int_{-\infty}^{\infty} e^{\frac{-x^2}{2}} \text d x
-                    \end{equation*}$$
-                </section>
-                <section data-markdown>
-                    <textarea data-template>
-## Slide 1
-A paragraph with some text and a [link](http://hakim.se).
----
-## Slide 2
-A reference<span class="reference">1</span>
----
-## Slide 3
-Another reference<span class="reference">3</span>
-                    </textarea>
+                    <section>
+                        <h1>Example: Unit Test in Julia</h1>
+                        <pre class="julia-repl"><code data-trim style="font-size: 32px;">
+julia> using Test: @test
+
+julia> arg_is42(x) = x == 42
+arg_is42 (generic function with 1 method)
+
+julia> @test arg_is42(41) == false
+Test Passed
+  Expression: arg_is42(41) == false
+   Evaluated: false == false
+                        </code></pre>
+                    </section>
+                    <section>
+                        <h1>Property-Based Testing</h1>
+                        <ul>
+                            <li>Specify <strong>properties</strong> instead of output</li>
+                            <li>Often relies on <strong>random input generation</strong></li>
+                            <li>Closely related to <strong>fuzzing</strong><!-- <span class="reference">1</span> --></li>
+                        </ul>
+                    </section>
+                    <section id="example">
+                        <div class="r-stack">
+                            <div class="fragment semi-fade-out" data-fragment-index="1">
+                                <h1>Example: Free group on \( S \)</h1>
+                                <ul>
+                                    <li>Generating set \( S = \left\{ a, b, c, \ldots \right\} \)</li>
+                                    <li>Inverse set \( S^{-1} = \left\{ x^{-1} : x \in S \right\}\)</li>
+                                    <li>A word on \( S \) is any written product of symbols (letters) of \( S \cup S^{-1} \)</li>
+                                </ul>
+                            </div>
+                            <div class="fragment r-frame obox fade-in-then-semi-out" data-fragment-index="1">
+                                $$
+                                \begin{align*}
+                                S &= \left\{ a, b, c \right\}\\
+                                S^{-1} &= \left\{ a^{-1}, b^{-1}, c^{-1} \right\}\\
+
+                                W_0 &= accb^{-1} \textcolor{#9558b2}{\overbrace{c c^{-1}}^{\mathclap{\text{reduction}}}} c b\\
+                                &= \textcolor{#4d7e65}{\underbrace{accb^{-1} c b}_{\mathclap{\text{reduced form}}}}
+                                \end{align*}
+                                $$
+                            </div>
+                            <div class="fragment r-frame obox fade-up" data-fragment-index="2">
+                                <p>\( F_S \) is the <strong>group</strong> formed by \(\left\{ \text{reduced words on } S \right\}\) together with concatenation, meaning:<p>
+
+                                <ul>
+                                    <li>concatenation is <strong>associative</strong> (obviously &#129335;)</li>
+                                    <li>there is an <strong>identity</strong> element (the empty word)</li>
+                                    <li>each element has an <strong>inverse</strong> (\( \omega \omega^{-1} = \omega^{-1} \omega = \text{empty word} \))</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </section>
                 </section>
 
-                <section id="references">
+                <section>
                     <section class="title-slide">
-                        <h1>References</h1>
+                        <h1>Property testing with JCheck.jl</h1>
+                    </section>
+
+                    <section>
+                        <h1>Free Group in Julia</h1>
+                        <p>Complete code available on <a href="https://github.com/ps-pat/juliacon2022/blob/master/assets/code.jl">GitHub</a>.</p>
+                        <pre class="julia"><code data-trim style="font-size: 25px;">
+struct Symb
+    symb::Symbol
+    inverse::Bool
+end
+
+function reduce end # Reduces a vector of `Symb`.
+
+struct Word
+    w::Vector{Symb}
+
+    Word(w) = new(reduce(w))
+end
+
+function concat end # Concatenates `Word`s.
+macro word end # Convenience macro to construct `Word`s.
+function Base.one end # Empty `Word` (identity element).
+                        </code></pre>
+
+                        <aside class="notes">
+                            <ul>
+                                <li>A <code>Word</code> is always reduced by design (inner constructor).</li>
+                            </ul>
+                        </aside>
+                    </section>
+
+                    <section>
+                        <h1>Generating Inputs</h1>
+                        <p>As easy as overloading the <code>generate</code> method!</p>
+                        <pre class="julia"><code data-trim style="font-size: 25px;">
+import JCheck: generate
+
+function generate(rng, ::Type{Word}, n)
+    lens = rand(rng, 1:100, n)
+
+    symbols_vec = map(lens) do len
+        Symbol.(rand(rng, 'a':'c', len))
+    end
+    inverses_vec = map(len -> rand(rng, Bool, len), lens)
+
+    map(symbols_vec, inverses_vec) do symbols, inverses
+        Word(map(Symb, symbols, inverses))
+    end
+end
+                        </code></pre>
+
+                        <aside class="notes">
+                            <ul>
+                                <li><code>generate</code> must return a <code>Vector</code> of length <code>n</code> of inputs of the appropriate type.</li>
+                                <li>Randomness is not required.</li>
+                            </ul>
+                        </aside>
+                    </section>
+
+                    <section>
+                        <h1>Group Properties</h1>
+                        <p>Is our implementation a group? Let's try to disprove it with <a href="https://github.com/ps-pat/JCheck.jl/">JCheck.jl</a>!</p>
+                        <pre class="julia-repl"><code data-trim style="font-size: 24px;">
+julia> using JCheck: Quickcheck
+
+julia> qc = Quickcheck("Free Group Over {a, b, c}")
+Free Group over {a, b, c}: 0 predicate and 0 free variable.
+                        </code></pre>
+
+                        <aside class="notes">
+                            <ul>
+                                <li>Asymetry of Logical Quantifier: in general, impossible to prove that a property holds.</li>
+                                <li>However, we can show that it doesn't hold by finding a counterexample!</li>
+                            </ul>
+                        </aside>
+                    </section>
+
+                    <section>
+                        <h1>Adding Predicates</h1>
+                        <pre class="julia"><code data-trim style="font-size: 24px;">
+function Base.inv(word::Word)
+    ret_vec = map(inv, word.w)
+
+    Word(reverse!(ret_vec))
+end
+
+pred_inverse(word) =
+    concat(word, inv(word)) ==
+    concat(inv(word), word) ==
+    one(Word)
+                        </code></pre>
+
+                        <pre class="julia-repl fragment fade-up"><code data-trim style="font-size: 24px;">
+julia> using JCheck: @add_predicate
+
+julia> @add_predicate(qc,
+                      "Inverse",
+                      word::Word -> pred_inverse(word))
+Free Group over {a, b, c}: 1 predicate and 1 free variable.
+word::Word
+                        </code></pre>
+
+                        <aside class="notes">
+                            <ul>
+                                <li>Inverse of a word:
+                                    <ol>
+                                        <li>Inverse each letter;</li>
+                                        <li>Reverse the word.</li>
+                                    </ol>
+                                </li>
+                                <li>Random inputs are generated when a variable name is first used (<code>word</code>).</li>
+                            </ul>
+                        </aside>
                     </section>
                     <section>
-                        <ol>
-                            <li>Croucha, D. J. M., &#38; Bodmer, W. F. (2020). Polygenic inheritance, GWAS, polygenic risk scores, and the search for functional variants. <i>Proceedings of the National Academy of Sciences of the United States of America</i>, <i>117</i>(32), 18924–18933. <a href="https://doi.org/10.1073/pnas.2005634117">https://doi.org/10.1073/pnas.2005634117</a></li>
-                            <li>Meuwissen, T. H. E., Hayes, B. J., &#38; Goddard, M. E. (2001). Prediction of Total Genetic Value Using Genome-Wide Dense Marker Maps. <i>Genetics</i>, <i>157</i>(4), 1819–1829. <a href="https://doi.org/10.1093/GENETICS/157.4.1819">https://doi.org/10.1093/GENETICS/157.4.1819</a></li>
-                        </ol>
+                        <h1>Running the Tests</h1>
+                        <pre class="julia-repl"><code data-trim style="font-size: 25px;">
+julia> using JCheck: @quickcheck
+
+julia> @quickcheck qc
+Test Summary: | Pass  Total
+Test Inverse  |    1      1
+                        </code></pre>
+
+                        <div class="fragment fade-up">
+                            <ul>
+                                <li>Integrates seamlessly with Julia's <code>Test</code> module</li>
+                            </ul>
+                            <pre class="julia"><code data-trim style="font-size: 25px;">
+using Test: @test, @testset
+
+@testset "Group Properties" begin
+    @test (@word a b) == (@word a b b-1 b)
+
+    @quickcheck qc
+end
+                            </code></pre>
+                            <pre class="julia"><code data-trim style="font-size: 30px;">
+Test Summary:    | Pass  Total
+Group Properties |    2      2
+                            </code></pre>
+                        </div>
                     </section>
+
                     <section>
-                        <ol start = 3>
-                            <li>Slatkin, M. (2008). Exchangeable models of complex inherited diseases. <i>Genetics</i>, <i>179</i>(4), 2253–2261. <a href="https://doi.org/10.1534/genetics.107.077719">https://doi.org/10.1534/genetics.107.077719</a></li>
-                            <li>Visscher, P. M., &#38; Wray, N. R. (2016). Concepts and Misconceptions about the Polygenic Additive Model Applied to Disease. <i>Human Heredity</i>, <i>80</i>(4), 165–170. <a href="https://doi.org/10.1159/000446931">https://doi.org/10.1159/000446931</a></li>
-                        </ol>
+                        <h1>Failing Predicate</h1>
+                        <p>\( F_S \) is not commutative in general &#128543;</p>
+                        <pre class="julia"><code data-trim style="font-size: 23px;">
+pred_commute(w1, w2) = concat(w1, w2) == concat(w2, w1)
+                        </code></pre>
+                        <pre class="julia-repl"><code data-trim style="font-size: 23px;">
+julia> @add_predicate(qc,
+                      "Commutativity",
+                      (word::Word, word2::Word) ->
+                          pred_commute(word, word2))
+Free Group Over {a, b, c}: 2 predicates and 2 free variables:
+word::Word
+word2::Word
+                        </code></pre>
+
+                        <aside class="notes">
+                            <ul>
+                                <li>Inputs generated previously are reused (<code>word</code>)</li>
+                            </ul>
+                        </aside>
+                    </section>
+
+                    <section>
+                        <h1>Failing Predicate &mdash; Test Output</h1>
+
+                        <pre class="julia"><code data-trim style="font-size: 23px;">
+┌ Warning: Predicate "Commutativity" does not hold for
+|          valuation (word = a-1 b a-1 b c-1 , word2 = c b-1 a )
+└ @ JCheck [...]/Quickcheck.jl:310
+[...]
+Some predicates do not hold for some valuations; they have been saved to
+JCheck_YYY-MM-DD_HH-MM-SS.jchk. Use function load and macro @getcases to explore problematic cases.
+
+Test Summary:        | Pass  Fail  Total
+Group Properties     |    2     1      3
+  Test Inverse       |    1            1
+  Test Commutativity |          1      1
+ERROR: Some tests did not pass: 2 passed, 1 failed, 0 errored, 0 broken.
+                        </code></pre>
+
+                        <aside class="notes">
+                            <ul>
+                                <li>Problematic input are serialized to a file for experimentation</li>
+                            </ul>
+                        </aside>
                     </section>
                 </section>
+
+                <section>
+                    <section class="title-slide">
+                        <h1>Other Features</h1>
+                    </section>
+                    <section>
+                        <h1>Special Cases</h1>
+                        <ul>
+                            <li>Often useful to test a few non-random inputs (limiting cases, ...)</li>
+                            <li>Can easily be done without <code>JCheck</code>, but might be more convenient (Cartesian product of inputs, ...)</li>
+                        </ul>
+                        <pre class="julia"><code data-trim style="font-size: 30px;">
+using JCheck: specialcases
+
+specialcases(::Type{Word}) = [one(Word)]
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <h1>Shrinkage</h1>
+                        <ul>
+                            <li>Often easier to find problems with short/simple failing cases</li>
+                            <li>Possible to implement a simplification procedure</li>
+                            <li>Applied recursively by <code>JCheck</code> until input is non-failing</li>
+                        </ul>
+                    </section>
+                </section>
+
+                <section>
+                    <h1>Shrinkage &mdash; Example</h1>
+                    <pre class="julia"><code data-trim style="font-size: 24px;">
+import JCheck: shrink, shrinkable
+
+shrinkable(word::Word) = length(word) > 2
+
+function shrink(word::Word)
+    shrinkable(word) || return [word]
+
+    n = length(word) ÷ 2
+    [word[1:n], word[(n+1):end]]
+end
+                    </code></pre>
+
+                    <pre class="julia"><code data-trim style="font-size: 24px;">
+┌ Warning: Predicate "Commutativity" does not hold for
+|          valuation (word = c-1 , word2 = a b-1 )
+└ @ JCheck [...]/Quickcheck.jl:310
+┌ Warning: Predicate "Commutativity" does not hold for
+|          valuation (word = a c-1 , word2 = a-1 )
+└ @ JCheck ~/Projets/JCheck/src/Quickcheck.jl:310
+[...]
+                    </code></pre>
+                    <p>Much easier to analyze &#128512; </p>
+                </section>
+
+                <!-- <section id="references">
+                     <section class="title-slide">
+                     <h1>References</h1>
+                     </section>
+                     <section>
+                     <ol>
+                     <li>MacIver, D. R. (2016, May 16). <i>What is Property Based Testing? - Hypothesis</i>. <a href="https://hypothesis.works/articles/what-is-property-based-testing/">https://hypothesis.works/articles/what-is-property-based-testing/</a></li>
+                     </ol>
+                     </section>
+                     </section> -->
             </div>
         </div>
 
@@ -115,9 +375,9 @@ Another reference<span class="reference">3</span>
         <script src="plugin/spotlight/spotlight.js"></script>
         <script src="node_modules/reveal.js-menu/menu.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
         <script src="dist/perso.js"></script>
-        <script type="text/javascript">qrcode.makeCode("www.patrickfournier.ca");</script>
+        <script type="text/javascript">qrcode.makeCode("www.patrickfournier.ca/juliacon2022");</script>
         <script>
          // More info about initialization & config:
          // - https://revealjs.com/initialization/
